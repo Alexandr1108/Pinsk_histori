@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="btnExitToStart" type="id" />
+    <item name="btnOpenMenu" type="id" />
+    <item name="btnClose" type="id" />
+    <item name="infoCard" type="id" />
+    <item name="infoImage" type="id" />
+    <item name="infoDescription" type="id" />
+    <item name="infoTitle" type="id" />
+</resources>

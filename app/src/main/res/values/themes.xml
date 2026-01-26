@@ -1,8 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.Pinsk" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#6200EE</item>
-        <item name="colorPrimaryVariant">#3700B3</item>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Pinsk" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#2196F3</item>
         <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#4CAF50</item>
+
+        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+
+    </style>
+
+    <style name="CircleImage" parent="">
+        <item name="cornerSize">50%</item>
     </style>
 </resources>
