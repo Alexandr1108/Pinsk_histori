@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">pinsk</string>
+    <string name="close">Закрыть</string>
+    <string name="history">История</string>
+    <string name="var">Война</string>
+    <string name="exit">Выход</string>
+    <string name="Backto">Назад</string>
+</resources>
