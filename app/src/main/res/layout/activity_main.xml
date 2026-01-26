@@ -18,7 +18,7 @@
             android:id="@+id/btnOpenMenu"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:layout_margin="16dp"
+            android:layout_margin="10dp"
             android:background="@drawable/white_circle_bg"
             android:elevation="6dp"
             android:src="@drawable/ic_menu"
@@ -114,8 +114,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="55dp"
                 android:text="Звук: ВКЛ"
-                android:backgroundTint="#4CAF50"
-                android:textColor="#FFFFFF"
+                android:textColor="#000000"
+                android:background="@color/pinsk_green"
                 android:layout_marginBottom="12dp"/>
 
             <View
@@ -128,8 +128,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="55dp"
                 android:text="Выход"
-                app:backgroundTint="#F44336"
-                android:textColor="#FFFFFF"/>
+                android:textColor="#000000"/>
         </LinearLayout>
     </com.google.android.material.navigation.NavigationView>
 </androidx.drawerlayout.widget.DrawerLayout>
