@@ -30,21 +30,33 @@ class StartActivity : AppCompatActivity() {
     private lateinit var previewMap: MapView
     private lateinit var locationOverlay: MyLocationNewOverlay
 
-    // Переменные для путей
     private var currentMainLine: Polyline? = null
     private var currentDashLine: Polyline? = null
 
-    // Переменные для слайдера
     private lateinit var viewPager: ViewPager2
     private val sliderHandler = Handler(Looper.getMainLooper())
 
+    // ОБНОВЛЕННЫЕ ТОЧКИ (взяты из твоего нового списка MainActivity)
     private val historyPoints = listOf(
-        GeoPoint(52.11098, 26.10433), GeoPoint(52.11298, 26.10828),
-        GeoPoint(52.11469, 26.11315), GeoPoint(52.11404, 26.10802)
+        GeoPoint(52.127968, 26.069469), // Собор
+        GeoPoint(52.127496, 26.088354), // Кладбище
+        GeoPoint(52.115631, 26.098187), // Замок
+        GeoPoint(52.11385, 26.10238),   // Варваринский мон.
+        GeoPoint(52.11098, 26.10433),   // Коллегиум
+        GeoPoint(52.11298, 26.10828),   // Францисканский мон.
+        GeoPoint(52.11404, 26.10802),   // Театр
+        GeoPoint(52.11469, 26.11315),   // Дворец
+        GeoPoint(52.120089, 26.115355)  // Костел Карла
     )
+
     private val warPoints = listOf(
-        GeoPoint(52.12129, 26.12137), GeoPoint(52.119598, 26.121725),
-        GeoPoint(52.122346, 26.112711), GeoPoint(52.12643, 26.10173)
+        GeoPoint(52.12643, 26.10173),   // Партизанам
+        GeoPoint(52.1168, 26.1095),     // Знак гетто
+        GeoPoint(52.122346, 26.112711), // Холокост
+        GeoPoint(52.11934, 26.12084),   // Интерноционалисты
+        GeoPoint(52.119598, 26.121725), // Освободители
+        GeoPoint(52.12129, 26.12137),   // Орудие
+        GeoPoint(52.120189, 26.124274)  // ДОТ
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,21 +64,19 @@ class StartActivity : AppCompatActivity() {
         Configuration.getInstance().load(this, getSharedPreferences("osm_prefs", MODE_PRIVATE))
         setContentView(R.layout.activity_start)
 
-        // 1. Инициализация Слайдера
         setupSlider()
 
-        // 2. Инициализация Карты
         previewMap = findViewById(R.id.previewMap)
         previewMap.setTileSource(TileSourceFactory.MAPNIK)
         previewMap.setMultiTouchControls(true)
-        previewMap.controller.setZoom(14.0)
+        previewMap.controller.setZoom(13.5)
         previewMap.controller.setCenter(GeoPoint(52.115, 26.107))
 
         locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), previewMap)
         locationOverlay.enableMyLocation()
         previewMap.overlays.add(locationOverlay)
 
-        // 3. Настройка кнопок
+        // Настройка кнопок с обновленными координатами
         setupButton(findViewById(R.id.startHistory), "HISTORICAL", historyPoints, Color.BLUE)
         setupButton(findViewById(R.id.startWar), "WAR", warPoints, Color.RED)
 
@@ -75,19 +85,21 @@ class StartActivity : AppCompatActivity() {
 
     private fun setupSlider() {
         viewPager = findViewById(R.id.viewPagerSlider)
+        // Список картинок (проверь, чтобы все ресурсы были в drawable)
         val images = listOf(
             R.drawable.photo20260,
             R.drawable.lheight,
             R.drawable.opydie,
             R.drawable.cholocost,
             R.drawable.photo2026011,
+            R.drawable.sobor,
+            R.drawable.kpepoct
         )
         viewPager.adapter = SliderAdapter(images)
 
-        // Плавная анимация (Fade + Zoom)
         viewPager.setPageTransformer { page, position ->
             page.alpha = 1 - kotlin.math.abs(position)
-            page.scaleY = 0.9f + (1 - kotlin.math.abs(position)) * 0.1f
+            page.scaleY = 0.85f + (1 - kotlin.math.abs(position)) * 0.15f
         }
 
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
@@ -113,36 +125,41 @@ class StartActivity : AppCompatActivity() {
                 roadManager.setMean(OSRMRoadManager.MEAN_BY_FOOT)
                 val myLocation = locationOverlay.myLocation
 
-                // Рисуем основной путь (сплошной)
+                // 1. Рисуем основной маршрут (между точками)
                 val mainRoad = roadManager.getRoad(ArrayList(destinations))
                 val mainOverlay = RoadManager.buildRoadOverlay(mainRoad)
                 mainOverlay.outlinePaint.color = color
-                mainOverlay.outlinePaint.strokeWidth = 10f
+                mainOverlay.outlinePaint.strokeWidth = 12f
 
-                // Рисуем подводящий путь (пунктир)
+                // 2. Рисуем подводящий штрих (серый)
                 var dashOverlay: Polyline? = null
                 if (myLocation != null) {
                     val connectPoints = arrayListOf(myLocation, destinations[0])
                     val dashRoad = roadManager.getRoad(connectPoints)
                     dashOverlay = RoadManager.buildRoadOverlay(dashRoad)
                     dashOverlay.outlinePaint.apply {
-                        this.color = Color.DKGRAY
-                        this.strokeWidth = 7f
-                        this.pathEffect = DashPathEffect(floatArrayOf(20f, 15f), 0f)
+                        this.color = Color.GRAY
+                        this.strokeWidth = 9f
+                        this.pathEffect = DashPathEffect(floatArrayOf(25f, 15f), 0f)
                     }
                 }
 
                 runOnUiThread {
+                    // Удаляем старые линии
                     currentMainLine?.let { previewMap.overlays.remove(it) }
                     currentDashLine?.let { previewMap.overlays.remove(it) }
 
                     currentMainLine = mainOverlay
                     previewMap.overlays.add(mainOverlay)
+
                     dashOverlay?.let {
                         currentDashLine = it
                         previewMap.overlays.add(it)
                     }
+
                     previewMap.invalidate()
+
+                    // Анимируем камеру к началу маршрута
                     previewMap.controller.animateTo(myLocation ?: destinations[0])
                 }
             } catch (e: Exception) { e.printStackTrace() }
@@ -164,7 +181,7 @@ class StartActivity : AppCompatActivity() {
         })
         button.setOnTouchListener { v, event ->
             detector.onTouchEvent(event)
-            v.performClick()
+            if (event.action == MotionEvent.ACTION_UP) v.performClick()
             true
         }
     }
