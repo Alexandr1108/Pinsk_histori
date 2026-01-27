@@ -36,7 +36,7 @@ class StartActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private val sliderHandler = Handler(Looper.getMainLooper())
 
-    // ОБНОВЛЕННЫЕ ТОЧКИ (взяты из твоего нового списка MainActivity)
+
     private val historyPoints = listOf(
         GeoPoint(52.127968, 26.069469), // Собор
         GeoPoint(52.127496, 26.088354), // Кладбище
@@ -76,7 +76,6 @@ class StartActivity : AppCompatActivity() {
         locationOverlay.enableMyLocation()
         previewMap.overlays.add(locationOverlay)
 
-        // Настройка кнопок с обновленными координатами
         setupButton(findViewById(R.id.startHistory), "HISTORICAL", historyPoints, Color.BLUE)
         setupButton(findViewById(R.id.startWar), "WAR", warPoints, Color.RED)
 
@@ -85,15 +84,25 @@ class StartActivity : AppCompatActivity() {
 
     private fun setupSlider() {
         viewPager = findViewById(R.id.viewPagerSlider)
-        // Список картинок (проверь, чтобы все ресурсы были в drawable)
         val images = listOf(
-            R.drawable.photo20260,
-            R.drawable.lheight,
-            R.drawable.opydie,
-            R.drawable.cholocost,
-            R.drawable.photo2026011,
-            R.drawable.sobor,
-            R.drawable.kpepoct
+            R.drawable.costel12,
+            R.drawable.foto1,
+            R.drawable.costel13,
+            R.drawable.foto2,
+            R.drawable.foto3,
+            R.drawable.foto4,
+            R.drawable.foto5,
+            R.drawable.foto6,
+            R.drawable.foto7,
+            R.drawable.foto8,
+            R.drawable.foto9,
+            R.drawable.foto10,
+            R.drawable.foto11,
+            R.drawable.foto12,
+            R.drawable.foto13,
+            R.drawable.foto14,
+            R.drawable.foto15,
+            R.drawable.v_kollege
         )
         viewPager.adapter = SliderAdapter(images)
 
@@ -125,13 +134,11 @@ class StartActivity : AppCompatActivity() {
                 roadManager.setMean(OSRMRoadManager.MEAN_BY_FOOT)
                 val myLocation = locationOverlay.myLocation
 
-                // 1. Рисуем основной маршрут (между точками)
                 val mainRoad = roadManager.getRoad(ArrayList(destinations))
                 val mainOverlay = RoadManager.buildRoadOverlay(mainRoad)
                 mainOverlay.outlinePaint.color = color
                 mainOverlay.outlinePaint.strokeWidth = 12f
 
-                // 2. Рисуем подводящий штрих (серый)
                 var dashOverlay: Polyline? = null
                 if (myLocation != null) {
                     val connectPoints = arrayListOf(myLocation, destinations[0])
@@ -145,7 +152,6 @@ class StartActivity : AppCompatActivity() {
                 }
 
                 runOnUiThread {
-                    // Удаляем старые линии
                     currentMainLine?.let { previewMap.overlays.remove(it) }
                     currentDashLine?.let { previewMap.overlays.remove(it) }
 
@@ -159,7 +165,7 @@ class StartActivity : AppCompatActivity() {
 
                     previewMap.invalidate()
 
-                    // Анимируем камеру к началу маршрута
+
                     previewMap.controller.animateTo(myLocation ?: destinations[0])
                 }
             } catch (e: Exception) { e.printStackTrace() }
