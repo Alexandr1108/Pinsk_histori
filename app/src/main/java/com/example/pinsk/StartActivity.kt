@@ -78,7 +78,10 @@ class StartActivity : AppCompatActivity() {
 
         setupButton(findViewById(R.id.startHistory), "HISTORICAL", historyPoints, Color.BLUE)
         setupButton(findViewById(R.id.startWar), "WAR", warPoints, Color.RED)
-
+        findViewById<Button>(R.id.btnAbout).setOnClickListener {
+            val intent = Intent(this, AboutActivity::class.java)
+            startActivity(intent)
+        }
         checkPermissions()
     }
 

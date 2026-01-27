@@ -1,7 +1,5 @@
 package com.example.pinsk
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.media.MediaPlayer
@@ -10,7 +8,6 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
-import androidx.core.app.ActivityCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
@@ -27,6 +24,7 @@ import kotlin.concurrent.thread
 
 
 
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var map: MapView
@@ -38,6 +36,17 @@ class MainActivity : AppCompatActivity() {
     private var isAudioGlobalEnabled = true
     private val visitedPlaces = mutableSetOf<String>()
     private lateinit var infoSlider: androidx.viewpager2.widget.ViewPager2
+    private val sliderHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val sliderRunnable = object : Runnable {
+        override fun run() {
+            val itemCount = infoSlider.adapter?.itemCount ?: 0
+            if (itemCount > 1) { // Прокручиваем, если картинок больше одной
+                val nextItem = (infoSlider.currentItem + 1) % itemCount
+                infoSlider.setCurrentItem(nextItem, true)
+                sliderHandler.postDelayed(this, 7000)
+            }
+        }
+    }
     data class Place(
         val name: String, val description: String,
         val lat: Double, val lon: Double,
@@ -61,14 +70,13 @@ class MainActivity : AppCompatActivity() {
 
         //  ВОЙНА
         Place("Мемориал Партизанам", "Мемориал был открыт в 2002 году. Пинская область была краем непроходимых лесов и болот, которые стали естественной крепостью для десятков партизанских бригад. Мемориал увековечивает память тысяч бойцов и подпольщиков, сражавшихся в этом регионе.", 52.12643, 26.10173, R.raw.partizan, listOf(R.drawable.photo2026122331,R.drawable.pam,R.drawable.pam2), "WAR"),
-        Place("Памятный знак жертвам Пинского гетто", "Установлен на месте, где в 1942 году находилось Пинское гетто — один из крупнейших центров уничтожения еврейского населения. В нём содержалось до 26 000 человек. Массовые расстрелы происходили в урочищах Добрая Воля и у Полесского драматического театра.", 52.1168, 26.1095, R.raw.znak, listOf(R.drawable.getto), "WAR"),
-        Place("Памятник жертвам Холокоста", "Мемориал установлен на историческом месте трагедии 1942 года. В ходе Холокоста в Пинске, где до войны евреи составляли более 70% населения, было уничтожено почти всё еврейское население города — около 26 000 человек.", 52.122346, 26.112711, R.raw.pamatnik, listOf(R.drawable.cholocost), "WAR"),
-        Place("Памятник воинам интернационалистам", "Открыт в 1998 году. Посвящён жителям Пинска, погибшим в Афганистане (29 человек), а также в других локальных конфликтах (Ангола, Эфиопия). Мемориал стал актом памяти о солдатах, чья служба долгое время оставалась в тени.", 52.11934, 26.12084, R.raw.inter, listOf(R.drawable.inter), "WAR"),
-        Place("Памятник освободителям", "Комплекс посвящён воинам, погибшим при освобождении Пинска в июле 1944 года. Вечный огонь открыт в 1975 году, а легендарный бронекатер БК-92 установлен в 1985 году. Это место памяти о пехоте, артиллерии и моряках Днепровской флотилии.", 52.119598, 26.121725, R.raw.komplex, listOf(R.drawable.photo2026011,R.drawable.bp), "WAR"),
+        Place("Памятный знак жертвам Пинского гетто", "Установлен на месте, где в 1942 году находилось Пинское гетто — один из крупнейших центров уничтожения еврейского населения. В нём содержалось до 26 000 человек. Массовые расстрелы происходили в урочищах Добрая Воля и у Полесского драматического театра.", 52.1168, 26.1095, R.raw.znak, listOf(R.drawable.getto,R.drawable.png1), "WAR"),
+        Place("Памятник жертвам Холокоста", "Мемориал установлен на историческом месте трагедии 1942 года. В ходе Холокоста в Пинске, где до войны евреи составляли более 70% населения, было уничтожено почти всё еврейское население города — около 26 000 человек.", 52.122346, 26.112711, R.raw.pamatnik, listOf(R.drawable.cholocost,R.drawable.pn1,R.drawable.pn2), "WAR"),
+        Place("Памятник воинам интернационалистам", "Открыт в 1998 году. Посвящён жителям Пинска, погибшим в Афганистане (29 человек), а также в других локальных конфликтах (Ангола, Эфиопия). Мемориал стал актом памяти о солдатах, чья служба долгое время оставалась в тени.", 52.11934, 26.12084, R.raw.inter, listOf(R.drawable.inter,R.drawable.int1,R.drawable.int2,R.drawable.int3), "WAR"),
+        Place("Памятник освободителям", "Комплекс посвящён воинам, погибшим при освобождении Пинска в июле 1944 года. Вечный огонь открыт в 1975 году, а легендарный бронекатер БК-92 установлен в 1985 году. Это место памяти о пехоте, артиллерии и моряках Днепровской флотилии.", 52.119598, 26.121725, R.raw.komplex, listOf(R.drawable.foto1,R.drawable.photo2026011,R.drawable.bp), "WAR"),
         Place("76-мм орудие на постаменте", "Установлено в 1975 году. Посвящено воинам-артиллеристам 61-й армии, которые в июле 1944 года освобождали Пинск. Это подлинное фронтовое орудие, один из главных «рабочих инструментов» Победы.", 52.12129, 26.12137, R.raw.opydie1, listOf(R.drawable.opydie), "WAR"),
-        Place("ДОТ Молчанова", "Железобетонный пулемётный ДОТ Пинского укрепрайона («Линия Сталина»), построенный в 1938–1939 годах. Это один из немногих материально сохранившихся объектов укрепрайона. Представляет собой типичное фортификационное сооружение предвоенного периода.", 52.120189, 26.124274, R.raw.molchanov, listOf(R.drawable.molchanov), "WAR")
+        Place("ДОТ Молчанова", "Железобетонный пулемётный ДОТ Пинского укрепрайона («Линия Сталина»), построенный в 1938–1939 годах. Это один из немногих материально сохранившихся объектов укрепрайона. Представляет собой типичное фортификационное сооружение предвоенного периода.", 52.120189, 26.124274, R.raw.molchanov, listOf(R.drawable.molchanov,R.drawable.molchanov1), "WAR")
     )
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().load(this, getSharedPreferences("osm_prefs", MODE_PRIVATE))
@@ -85,6 +93,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnClose).setOnClickListener {
             infoCard.visibility = View.GONE
             mediaPlayer?.stop()
+            sliderHandler.removeCallbacks(sliderRunnable)
         }
 
         findViewById<ImageButton>(R.id.btnOpenMenu).setOnClickListener {
@@ -101,10 +110,15 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.infoTitle).text = place.name
         findViewById<TextView>(R.id.infoDescription).text = place.description
 
-        // Используем ViewPager2 вместо ImageView
         infoSlider.adapter = SliderAdapter(place.images)
+        infoSlider.setCurrentItem(0, false) // Сброс на первую картинку без анимации
 
         infoCard.visibility = View.VISIBLE
+
+        sliderHandler.removeCallbacks(sliderRunnable)
+        if (place.images.size > 1) {
+            sliderHandler.postDelayed(sliderRunnable, 3000)
+        }
 
         if (isAudioGlobalEnabled) {
             mediaPlayer?.release()
@@ -152,7 +166,6 @@ class MainActivity : AppCompatActivity() {
                 val userLoc = myLocationOverlay.myLocation
                 val destPoints = ArrayList(filtered.map { GeoPoint(it.lat, it.lon) })
 
-                // Серый пунктир от тебя
                 if (userLoc != null && destPoints.isNotEmpty()) {
                     val roadToFirst = roadManager.getRoad(arrayListOf(userLoc, destPoints[0]))
                     val dashOverlay = RoadManager.buildRoadOverlay(roadToFirst)
@@ -162,7 +175,6 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread { map.overlays.add(dashOverlay) }
                 }
 
-                // Основная линия
                 if (destPoints.size > 1) {
                     val mainRoad = roadManager.getRoad(destPoints)
                     val mainOverlay = RoadManager.buildRoadOverlay(mainRoad)
@@ -212,7 +224,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onResume() { super.onResume(); map.onResume() }
-    override fun onPause() { super.onPause(); map.onPause() }
-    override fun onDestroy() { super.onDestroy(); mediaPlayer?.release() }
+    override fun onResume() {
+        super.onResume()
+        map.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        map.onPause()
+        sliderHandler.removeCallbacks(sliderRunnable)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.release()
+        sliderHandler.removeCallbacks(sliderRunnable)
+    }
 }
