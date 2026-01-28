@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Виртуальный тур по Пинску</title>
+    <link rel="stylesheet" href="pannellum.css">
+    <script type="text/javascript" src="pannellum.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        #panorama { width: 100%; height: 100%; background-color: #000; }
+    </style>
+</head>
+<body>
+
+<div id="panorama"></div>
+
+<script>
+    pannellum.viewer('panorama', {
+        "default": {
+            "firstScene": "entrance",
+            "author": "Pinsk Guide",
+            "sceneFadeDuration": 1000,
+            "autoLoad": true,
+            "orientationOnDeviceMotion": true
+        },
+
+        "scenes": {
+            "entrance": {
+                "title": "Первая точка (pan1)",
+                "panorama": "pan1_1.jpg",
+                "hfov": 110,
+                "pitch": 0,
+                "yaw": 0,
+                "hotSpots": [
+                    {
+                        "pitch": -5,
+                        "yaw": 0,
+                        "type": "scene",
+                        "text": "Перейти ко второй панораме",
+                        "sceneId": "second_point"
+                    }
+                ]
+            },
+
+            "second_point": {
+                "panorama": "pan2_2.jpg",
+                "hfov": 110,
+                "pitch": 0,
+                "yaw": 0,
+                "hotSpots": [
+                    {
+                        "pitch": -5,
+                        "yaw": 180,
+                        "type": "scene",
+                        "text": "Вернуться назад",
+                        "sceneId": "entrance"
+                    }
+                ]
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

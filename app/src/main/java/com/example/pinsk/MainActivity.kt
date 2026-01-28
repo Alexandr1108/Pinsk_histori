@@ -1,5 +1,6 @@
 package com.example.pinsk
 
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.media.MediaPlayer
@@ -37,13 +38,17 @@ class MainActivity : AppCompatActivity() {
     private val visitedPlaces = mutableSetOf<String>()
     private lateinit var infoSlider: androidx.viewpager2.widget.ViewPager2
     private val sliderHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val sliderRunnable = object : Runnable {
-        override fun run() {
-            val itemCount = infoSlider.adapter?.itemCount ?: 0
-            if (itemCount > 1) { // Прокручиваем, если картинок больше одной
-                val nextItem = (infoSlider.currentItem + 1) % itemCount
-                infoSlider.setCurrentItem(nextItem, true)
-                sliderHandler.postDelayed(this, 7000)
+
+
+    private val sliderRunnable by lazy {
+        object : Runnable {
+            override fun run() {
+                val itemCount = infoSlider.adapter?.itemCount ?: 0
+                if (itemCount > 1) {
+                    val nextItem = (infoSlider.currentItem + 1) % itemCount
+                    infoSlider.setCurrentItem(nextItem, true)
+                    sliderHandler.postDelayed(this, 3000)
+                }
             }
         }
     }
@@ -209,7 +214,11 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
         findViewById<Button>(R.id.btnExitToStart).setOnClickListener { finish() }
-
+        findViewById<Button>(R.id.menuVirtual).setOnClickListener {
+            val intent = Intent(this, PanoramaActivity::class.java)
+            startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
         val btnAudio = findViewById<Button>(R.id.btnToggleAudio)
         btnAudio.setOnClickListener {
             isAudioGlobalEnabled = !isAudioGlobalEnabled

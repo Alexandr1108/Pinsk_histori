@@ -11,6 +11,7 @@ import android.os.Looper
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.viewpager2.widget.ViewPager2
@@ -29,156 +30,123 @@ class StartActivity : AppCompatActivity() {
 
     private lateinit var previewMap: MapView
     private lateinit var locationOverlay: MyLocationNewOverlay
-
-    private var currentMainLine: Polyline? = null
-    private var currentDashLine: Polyline? = null
-
     private lateinit var viewPager: ViewPager2
     private val sliderHandler = Handler(Looper.getMainLooper())
 
+    private var currentMainLine: Polyline? = null
+    private var currentDashLine: Polyline? = null
+    private val visitedPoints = mutableSetOf<String>()
 
+    // Твои точки маршрутов
     private val historyPoints = listOf(
-        GeoPoint(52.127968, 26.069469), // Собор
-        GeoPoint(52.127496, 26.088354), // Кладбище
-        GeoPoint(52.115631, 26.098187), // Замок
-        GeoPoint(52.11385, 26.10238),   // Варваринский мон.
-        GeoPoint(52.11098, 26.10433),   // Коллегиум
-        GeoPoint(52.11298, 26.10828),   // Францисканский мон.
-        GeoPoint(52.11404, 26.10802),   // Театр
-        GeoPoint(52.11469, 26.11315),   // Дворец
-        GeoPoint(52.120089, 26.115355)  // Костел Карла
+        GeoPoint(52.127968, 26.069469), GeoPoint(52.127496, 26.088354),
+        GeoPoint(52.115631, 26.098187), GeoPoint(52.11385, 26.10238),
+        GeoPoint(52.11098, 26.10433), GeoPoint(52.11298, 26.10828),
+        GeoPoint(52.11404, 26.10802), GeoPoint(52.11469, 26.11315),
+        GeoPoint(52.120089, 26.115355)
     )
 
     private val warPoints = listOf(
-        GeoPoint(52.12643, 26.10173),   // Партизанам
-        GeoPoint(52.1168, 26.1095),     // Знак гетто
-        GeoPoint(52.122346, 26.112711), // Холокост
-        GeoPoint(52.11934, 26.12084),   // Интерноционалисты
-        GeoPoint(52.119598, 26.121725), // Освободители
-        GeoPoint(52.12129, 26.12137),   // Орудие
-        GeoPoint(52.120189, 26.124274)  // ДОТ
+        GeoPoint(52.12643, 26.10173), GeoPoint(52.1168, 26.1095),
+        GeoPoint(52.122346, 26.112711), GeoPoint(52.11934, 26.12084),
+        GeoPoint(52.119598, 26.121725), GeoPoint(52.12129, 26.12137),
+        GeoPoint(52.120189, 26.124274)
     )
+
+    private val sliderRunnable = object : Runnable {
+        override fun run() {
+            if (::viewPager.isInitialized && viewPager.adapter != null) {
+                val itemCount = viewPager.adapter!!.itemCount
+                if (itemCount > 0) {
+                    viewPager.currentItem = (viewPager.currentItem + 1) % itemCount
+                    sliderHandler.postDelayed(this, 4000)
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Configuration.getInstance().userAgentValue = packageName
         Configuration.getInstance().load(this, getSharedPreferences("osm_prefs", MODE_PRIVATE))
+
         setContentView(R.layout.activity_start)
 
         setupSlider()
+        setupMap()
 
-        previewMap = findViewById(R.id.previewMap)
-        previewMap.setTileSource(TileSourceFactory.MAPNIK)
-        previewMap.setMultiTouchControls(true)
-        previewMap.controller.setZoom(13.5)
-        previewMap.controller.setCenter(GeoPoint(52.115, 26.107))
+        // Кнопки с категориями
+        setupButton(findViewById(R.id.startHistory), "HISTORICAL", historyPoints)
+        setupButton(findViewById(R.id.startWar), "WAR", warPoints)
 
-        locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), previewMap)
-        locationOverlay.enableMyLocation()
-        previewMap.overlays.add(locationOverlay)
-
-        setupButton(findViewById(R.id.startHistory), "HISTORICAL", historyPoints, Color.BLUE)
-        setupButton(findViewById(R.id.startWar), "WAR", warPoints, Color.RED)
-        findViewById<Button>(R.id.btnAbout).setOnClickListener {
-            val intent = Intent(this, AboutActivity::class.java)
-            startActivity(intent)
+        findViewById<Button>(R.id.btnVirtualTour).setOnClickListener {
+            startActivity(Intent(this, PanoramaActivity::class.java))
         }
+        findViewById<Button>(R.id.btnAbout).setOnClickListener {
+            startActivity(Intent(this, AboutActivity::class.java))
+        }
+
         checkPermissions()
     }
 
     private fun setupSlider() {
         viewPager = findViewById(R.id.viewPagerSlider)
         val images = listOf(
-            R.drawable.costel12,
-            R.drawable.foto1,
-            R.drawable.costel13,
-            R.drawable.foto2,
-            R.drawable.foto3,
-            R.drawable.foto4,
-            R.drawable.foto5,
-            R.drawable.foto6,
-            R.drawable.foto7,
-            R.drawable.foto8,
-            R.drawable.foto9,
-            R.drawable.foto10,
-            R.drawable.foto11,
-            R.drawable.foto12,
-            R.drawable.foto13,
-            R.drawable.foto14,
-            R.drawable.foto15,
-            R.drawable.v_kollege
+            R.drawable.costel12, R.drawable.foto1, R.drawable.costel13,
+            R.drawable.foto2, R.drawable.foto3, R.drawable.foto4,
+            R.drawable.foto5, R.drawable.foto6, R.drawable.foto7,
+            R.drawable.foto8, R.drawable.foto9, R.drawable.foto10,
+            R.drawable.foto11, R.drawable.foto12, R.drawable.foto13,
+            R.drawable.foto14, R.drawable.foto15, R.drawable.v_kollege
         )
         viewPager.adapter = SliderAdapter(images)
 
-        viewPager.setPageTransformer { page, position ->
-            page.alpha = 1 - kotlin.math.abs(position)
-            page.scaleY = 0.85f + (1 - kotlin.math.abs(position)) * 0.15f
-        }
-
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                super.onPageSelected(position)
                 sliderHandler.removeCallbacks(sliderRunnable)
                 sliderHandler.postDelayed(sliderRunnable, 4000)
             }
         })
     }
 
-    private val sliderRunnable = Runnable {
-        val itemCount = viewPager.adapter?.itemCount ?: 0
-        if (itemCount > 0) {
-            viewPager.currentItem = (viewPager.currentItem + 1) % itemCount
+    private fun setupMap() {
+        previewMap = findViewById(R.id.previewMap)
+        previewMap.setTileSource(TileSourceFactory.MAPNIK)
+        previewMap.setMultiTouchControls(true)
+        previewMap.controller.setZoom(14.0)
+        previewMap.controller.setCenter(GeoPoint(52.115, 26.107))
+
+        locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), previewMap)
+        locationOverlay.enableMyLocation()
+
+        // Логика слежения как в MainActivity
+        locationOverlay.runOnFirstFix {
+            locationOverlay.myLocationProvider.startLocationProvider { location, _ ->
+                val currentPos = GeoPoint(location.latitude, location.longitude)
+                checkProximity(currentPos)
+            }
         }
+        previewMap.overlays.add(locationOverlay)
     }
 
-    private fun drawSmartPreview(destinations: List<GeoPoint>, color: Int) {
-        thread {
-            try {
-                val roadManager = OSRMRoadManager(this, packageName)
-                roadManager.setMean(OSRMRoadManager.MEAN_BY_FOOT)
-                val myLocation = locationOverlay.myLocation
-
-                val mainRoad = roadManager.getRoad(ArrayList(destinations))
-                val mainOverlay = RoadManager.buildRoadOverlay(mainRoad)
-                mainOverlay.outlinePaint.color = color
-                mainOverlay.outlinePaint.strokeWidth = 12f
-
-                var dashOverlay: Polyline? = null
-                if (myLocation != null) {
-                    val connectPoints = arrayListOf(myLocation, destinations[0])
-                    val dashRoad = roadManager.getRoad(connectPoints)
-                    dashOverlay = RoadManager.buildRoadOverlay(dashRoad)
-                    dashOverlay.outlinePaint.apply {
-                        this.color = Color.GRAY
-                        this.strokeWidth = 9f
-                        this.pathEffect = DashPathEffect(floatArrayOf(25f, 15f), 0f)
-                    }
-                }
-
+    private fun checkProximity(currentPos: GeoPoint) {
+        val allPoints = historyPoints + warPoints
+        allPoints.forEach { point ->
+            val dist = currentPos.distanceToAsDouble(point)
+            if (dist < 30.0 && !visitedPoints.contains(point.toString())) {
                 runOnUiThread {
-                    currentMainLine?.let { previewMap.overlays.remove(it) }
-                    currentDashLine?.let { previewMap.overlays.remove(it) }
-
-                    currentMainLine = mainOverlay
-                    previewMap.overlays.add(mainOverlay)
-
-                    dashOverlay?.let {
-                        currentDashLine = it
-                        previewMap.overlays.add(it)
-                    }
-
-                    previewMap.invalidate()
-
-
-                    previewMap.controller.animateTo(myLocation ?: destinations[0])
+                    visitedPoints.add(point.toString())
+                    Toast.makeText(this, "Вы рядом с достопримечательностью!", Toast.LENGTH_SHORT).show()
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            }
         }
     }
 
-    private fun setupButton(button: Button, category: String, points: List<GeoPoint>, color: Int) {
+    private fun setupButton(button: Button, category: String, points: List<GeoPoint>) {
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                drawSmartPreview(points, color)
+                drawSmartPreview(points, category)
                 return true
             }
             override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -195,23 +163,64 @@ class StartActivity : AppCompatActivity() {
         }
     }
 
+    private fun drawSmartPreview(destinations: List<GeoPoint>, category: String) {
+        thread {
+            try {
+                val roadManager = OSRMRoadManager(this, packageName)
+                roadManager.setMean(OSRMRoadManager.MEAN_BY_FOOT)
+
+                val userLoc = locationOverlay.myLocation
+                val routeColor = if (category == "HISTORICAL") Color.BLUE else Color.RED
+
+                // 1. Пунктир до пользователя
+                var dashOverlay: Polyline? = null
+                if (userLoc != null && destinations.isNotEmpty()) {
+                    val roadToFirst = roadManager.getRoad(arrayListOf(userLoc, destinations[0]))
+                    dashOverlay = RoadManager.buildRoadOverlay(roadToFirst)
+                    dashOverlay.outlinePaint.color = Color.GRAY
+                    dashOverlay.outlinePaint.strokeWidth = 10f
+                    dashOverlay.outlinePaint.pathEffect = DashPathEffect(floatArrayOf(20f, 20f), 0f)
+                }
+
+                // 2. Основной маршрут
+                val mainRoad = roadManager.getRoad(ArrayList(destinations))
+                val mainOverlay = RoadManager.buildRoadOverlay(mainRoad)
+                mainOverlay.outlinePaint.color = routeColor
+                mainOverlay.outlinePaint.strokeWidth = 14f
+
+                runOnUiThread {
+                    currentMainLine?.let { previewMap.overlays.remove(it) }
+                    currentDashLine?.let { previewMap.overlays.remove(it) }
+
+                    currentDashLine = dashOverlay
+                    dashOverlay?.let { previewMap.overlays.add(it) }
+
+                    currentMainLine = mainOverlay
+                    previewMap.overlays.add(mainOverlay)
+
+                    previewMap.invalidate()
+                    if (destinations.isNotEmpty()) previewMap.controller.animateTo(destinations[0])
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
     private fun checkPermissions() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+        val perms = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (ActivityCompat.checkSelfPermission(this, perms[0]) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, perms, 1)
         }
     }
 
     override fun onResume() {
         super.onResume()
         previewMap.onResume()
-        locationOverlay.enableMyLocation()
         sliderHandler.postDelayed(sliderRunnable, 4000)
     }
 
     override fun onPause() {
         super.onPause()
         previewMap.onPause()
-        locationOverlay.disableMyLocation()
         sliderHandler.removeCallbacks(sliderRunnable)
     }
 }
