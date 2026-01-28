@@ -76,7 +76,6 @@ class StartActivity : AppCompatActivity() {
         setupSlider()
         setupMap()
 
-        // Кнопки с категориями
         setupButton(findViewById(R.id.startHistory), "HISTORICAL", historyPoints)
         setupButton(findViewById(R.id.startWar), "WAR", warPoints)
 
@@ -120,7 +119,7 @@ class StartActivity : AppCompatActivity() {
         locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), previewMap)
         locationOverlay.enableMyLocation()
 
-        // Логика слежения как в MainActivity
+
         locationOverlay.runOnFirstFix {
             locationOverlay.myLocationProvider.startLocationProvider { location, _ ->
                 val currentPos = GeoPoint(location.latitude, location.longitude)
@@ -172,7 +171,6 @@ class StartActivity : AppCompatActivity() {
                 val userLoc = locationOverlay.myLocation
                 val routeColor = if (category == "HISTORICAL") Color.BLUE else Color.RED
 
-                // 1. Пунктир до пользователя
                 var dashOverlay: Polyline? = null
                 if (userLoc != null && destinations.isNotEmpty()) {
                     val roadToFirst = roadManager.getRoad(arrayListOf(userLoc, destinations[0]))
@@ -182,7 +180,6 @@ class StartActivity : AppCompatActivity() {
                     dashOverlay.outlinePaint.pathEffect = DashPathEffect(floatArrayOf(20f, 20f), 0f)
                 }
 
-                // 2. Основной маршрут
                 val mainRoad = roadManager.getRoad(ArrayList(destinations))
                 val mainOverlay = RoadManager.buildRoadOverlay(mainRoad)
                 mainOverlay.outlinePaint.color = routeColor
