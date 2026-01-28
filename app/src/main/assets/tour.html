@@ -9,58 +9,137 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
         #panorama { width: 100%; height: 100%; background-color: #000; }
+        #audio-btn {
+            position: absolute; bottom: 20px; right: 20px; z-index: 100;
+            background: rgba(0,0,0,0.6); color: white; border: 1px solid white;
+            padding: 8px 15px; cursor: pointer; border-radius: 20px;
+            font-family: sans-serif; font-size: 14px;
+        }
     </style>
 </head>
 <body>
 
 <div id="panorama"></div>
+<button id="audio-btn" onclick="toggleMute()">Выключить звук</button>
 
 <script>
-    pannellum.viewer('panorama', {
+    const audioPlayer = new Audio();
+    let isMuted = false;
+
+    const sceneAudios = {
+        "pan2_1": "audio_1.mp3",
+        "kologe_2": "audio_2.mp3",
+        "lenina_c_prava_kol_3": "audio_3_1.mp3", // Общий фон для развилки
+        "lenina_na_kologe_3_1": "audio_3_1.mp3",
+        "moct_3_2": "audio_3_2.mp3",
+        "lenina_c_leva_3_3": "audio_3_3.mp3",
+        "bk_92_4": "audio_4.mp3"
+    };
+
+    const viewer = pannellum.viewer('panorama', {
         "default": {
-            "firstScene": "entrance",
-            "author": "Pinsk Guide",
+            "firstScene": "pan2_1",
             "sceneFadeDuration": 1000,
-            "autoLoad": true,
-            "orientationOnDeviceMotion": true
+            "autoLoad": true
         },
 
         "scenes": {
-            "entrance": {
-                "title": "Первая точка (pan1)",
-                "panorama": "pan1_1.jpg",
-                "hfov": 110,
-                "pitch": 0,
-                "yaw": 0,
+            "pan2_1": {
+                "title": "Заезд в Пинск",
+                "panorama": "pan2_1.jpg",
                 "hotSpots": [
-                    {
-                        "pitch": -5,
-                        "yaw": 0,
-                        "type": "scene",
-                        "text": "Перейти ко второй панораме",
-                        "sceneId": "second_point"
-                    }
+                    { "pitch": 0, "yaw": 0, "type": "scene", "text": "Вперед к Коллегиуму", "sceneId": "kologe_2" }
                 ]
             },
 
-            "second_point": {
-                "panorama": "pan2_2.jpg",
-                "hfov": 110,
-                "pitch": 0,
-                "yaw": 0,
+            "kologe_2": {
+                "title": "Площадь Ленина и коллегиум",
+                "panorama": "kolege_2.jpg", // Исправлено на kolege (как в папке)
                 "hotSpots": [
-                    {
-                        "pitch": -5,
-                        "yaw": 180,
-                        "type": "scene",
-                        "text": "Вернуться назад",
-                        "sceneId": "entrance"
-                    }
+                    { "pitch": 0, "yaw": 180, "type": "scene", "text": "Назад к началу", "sceneId": "pan2_1" },
+                    { "pitch": -23, "yaw": 0, "type": "scene", "text": "Вперед на Ленина", "sceneId": "lenina_c_prava_kol_3" }
+                ]
+            },
+
+            "lenina_c_prava_kol_3": {
+                "title": "Улица Ленина (справа)",
+                "panorama": "lenina_c_prava_kol_3.jpg",
+                "hotSpots": [
+                    { "pitch": 0, "yaw": 180, "type": "scene", "text": "Назад к Коллегиуму", "sceneId": "kologe_2" },
+                    { "pitch": 5, "yaw": -15, "type": "scene", "text": "Ленина (центр)", "sceneId": "lenina_na_kologe_3_1" },
+                    { "pitch": 0, "yaw": 70, "type": "scene", "text": "К мосту", "sceneId": "moct_3_2" },
+                    { "pitch": 5, "yaw": -80, "type": "scene", "text": "Ленина (лево)", "sceneId": "lenina_c_leva_3_3" }
+                ]
+            },
+
+            "lenina_na_kologe_3_1": {
+                "title": "Ленина (центр)",
+                "panorama": "lenina_na_kologe_3_1.jpg",
+                "hotSpots": [
+                    { "pitch": 0, "yaw": 180, "type": "scene", "text": "Назад к развилке", "sceneId": "lenina_c_prava_kol_3" },
+                    { "pitch": 0, "yaw": 0, "type": "scene", "text": "Вперед к БК-92", "sceneId": "bk_92_4" }
+                ]
+            },
+
+            "moct_3_2": {
+                "title": "Мост через Пину",
+                "panorama": "moct_3_2.jpg",
+                "hotSpots": [
+                    { "pitch": 0, "yaw": 180, "type": "scene", "text": "Назад к развилке", "sceneId": "lenina_c_prava_kol_3" },
+                    { "pitch": 0, "yaw": 0, "type": "scene", "text": "Вперед к БК-92", "sceneId": "bk_92_4" }
+                ]
+            },
+
+            "lenina_c_leva_3_3": {
+                "title": "Ленина (лево)",
+                "panorama": "lenina_c_leva_3_3.jpg",
+                "hotSpots": [
+                    { "pitch": 0, "yaw": 180, "type": "scene", "text": "Назад к развилке", "sceneId": "lenina_c_prava_kol_3" },
+                    { "pitch": 0, "yaw": 0, "type": "scene", "text": "Вперед к БК-92", "sceneId": "bk_92_4" }
+                ]
+            },
+
+            "bk_92_4": {
+                "title": "Парк (БК-92)",
+                "panorama": "bk_92_4.jpg",
+                "hotSpots": [
+                    { "pitch": 0, "yaw": -40, "type": "scene", "text": "Назад к Ленина (центр)", "sceneId": "lenina_na_kologe_3_1" },
+                    { "pitch": 0, "yaw": 0, "type": "scene", "text": "Назад к мосту", "sceneId": "moct_3_2" },
+                    { "pitch": 0, "yaw": 40, "type": "scene", "text": "Назад к Ленина (лево)", "sceneId": "lenina_c_leva_3_3" }
                 ]
             }
         }
     });
-</script>
 
+    // Функция воспроизведения звука
+    function playAudio(sceneId) {
+        if (isMuted) return;
+        const src = sceneAudios[sceneId];
+        if (src) {
+            audioPlayer.src = src;
+            audioPlayer.load();
+            audioPlayer.play().catch(e => console.log("Браузер ожидает клика пользователя"));
+        }
+    }
+
+    viewer.on('scenechange', (id) => playAudio(id));
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        const btn = document.getElementById('audio-btn');
+        if (isMuted) {
+            audioPlayer.pause();
+            btn.innerText = "Включить звук";
+        } else {
+            btn.innerText = "Выключить звук";
+            playAudio(viewer.getScene());
+        }
+    }
+
+    document.body.addEventListener('click', () => {
+        if (audioPlayer.src === "") playAudio(viewer.getScene());
+    }, { once: true });
+
+</script>
 </body>
 </html>
