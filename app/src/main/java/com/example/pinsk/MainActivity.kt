@@ -23,9 +23,6 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import kotlin.concurrent.thread
 
-
-
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var map: MapView
@@ -39,6 +36,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var infoSlider: androidx.viewpager2.widget.ViewPager2
     private val sliderHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
+    // Переменные для динамического маршрута
+    private var currentCategory = "HISTORICAL"
+    private var roadOverlayToFirst: Polyline? = null
+    private var lastUpdateLocation: GeoPoint? = null
 
     private val sliderRunnable by lazy {
         object : Runnable {
@@ -52,6 +53,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
     data class Place(
         val name: String, val description: String,
         val lat: Double, val lon: Double,
@@ -61,7 +63,6 @@ class MainActivity : AppCompatActivity() {
     )
 
     private val places = listOf(
-        //  ИСТОРИЯ
         Place("Кафедральный собор Святого великомученика Феодора Тирона", "Собор ведёт свою историю от деревянной церкви, известной с XVI века. Существующее каменное здание было возведено значительно позже — в 1936–1938 годах по проекту архитектора Ю. Лисецкого на месте старого храма. Его строительство в межвоенный период (в составе Польши) стало актом духовного укрепления православной общины города. Освящён во имя святого Феодора Тирона — раннехристианского мученика, почитаемого как покровитель воинов. В 1992 году храм получил статус кафедрального собора Пинской епархии Белорусского экзархата Русской православной церкви.", 52.127968, 26.069469, R.raw.sobor1_d, listOf(R.drawable.sobor,R.drawable.sobor1,R.drawable.sobor2, R.drawable.sobor3), "HISTORICAL"),
         Place("Кладбище «Спокойное»", "(иногда встречаются названия «Спокоевское», «Завищенское») является старейшим из сохранившихся городских некрополей Пинска. Его официальное открытие относится к концу XVIII – началу XIX века, хотя захоронения на этом месте, возможно, велись и ранее. Кладбище стало последним пристанищем для представителей разных сословий, конфессий и национальностей Пинска, отразив в себе сложную социальную ткань города в досоветский период.", 52.127496, 26.088354, R.raw.kladbicha, listOf(R.drawable.klad,R.drawable.kladbicha1,R.drawable.kladbicha2), "HISTORICAL"),
         Place("Каролинский замок", "Каролинский замок был возведён в первой половине XVIII века (около 1720-х годов) как резиденция великого гетмана литовского Михаила Сервация Вишневецкого. Замок был построен на землях деревни Каролин, которую гетман купил и назвал в честь своей жены — княгини Катажины из рода Дольских. Это была не оборонительная крепость, а репрезентативная магнатская резиденция в стиле барокко, символизирующая могущество одного из самых влиятельных родов Речи Посполитой.", 52.115631, 26.098187, R.raw.kpepoct, listOf(R.drawable.kpepoct,R.drawable.zamok1), "HISTORICAL"),
@@ -73,7 +74,6 @@ class MainActivity : AppCompatActivity() {
         Place("Дворец Бутримовича", "Построен в 1784–1790 гг. по заказу Матеуша Бутримовича. Проект в стиле раннего классицизма приписывают архитектору К. Шильдхаузу. Дворец называли «Пинским Муром» за великолепие. Это первое каменное гражданское здание в Пинске.", 52.11469, 26.11315, R.raw.dvorec, listOf(R.drawable.photo2026014802,R.drawable.dvorez,R.drawable.dvorez1,R.drawable.dvorez2), "HISTORICAL"),
         Place("Костёл Святого Карла Борромео", "Костёл был возведён в 1902–1910 годах на тогдашней окраине города. Его строительство инициировал меценат Кароль Лопатинский. Храм освящён во имя святого Карла Борромео — кардинала Милана XVI века. Это был акт укрепления католической веры в промышленном районе.", 52.120089, 26.115355, R.raw.kotel, listOf(R.drawable.kotal,R.drawable.costel14,R.drawable.costel15), "HISTORICAL"),
 
-        //  ВОЙНА
         Place("Мемориал Партизанам", "Мемориал был открыт в 2002 году. Пинская область была краем непроходимых лесов и болот, которые стали естественной крепостью для десятков партизанских бригад. Мемориал увековечивает память тысяч бойцов и подпольщиков, сражавшихся в этом регионе.", 52.13450,26.09806, R.raw.partizan, listOf(R.drawable.photo2026122331,R.drawable.pam,R.drawable.pam2), "WAR"),
         Place("Памятный знак жертвам Пинского гетто", "Установлен на месте, где в 1942 году находилось Пинское гетто — один из крупнейших центров уничтожения еврейского населения. В нём содержалось до 26 000 человек. Массовые расстрелы происходили в урочищах Добрая Воля и у Полесского драматического театра.", 52.1168, 26.1095, R.raw.znak, listOf(R.drawable.getto,R.drawable.png1), "WAR"),
         Place("Памятник жертвам Холокоста", "Мемориал установлен на историческом месте трагедии 1942 года. В ходе Холокоста в Пинске, где до войны евреи составляли более 70% населения, было уничтожено почти всё еврейское население города — около 26 000 человек.", 52.122346, 26.112711, R.raw.pamatnik, listOf(R.drawable.cholocost,R.drawable.pn1,R.drawable.pn2), "WAR"),
@@ -82,6 +82,7 @@ class MainActivity : AppCompatActivity() {
         Place("76-мм орудие на постаменте", "Установлено в 1975 году. Посвящено воинам-артиллеристам 61-й армии, которые в июле 1944 года освобождали Пинск. Это подлинное фронтовое орудие, один из главных «рабочих инструментов» Победы.", 52.12129, 26.12137, R.raw.opydie1, listOf(R.drawable.opydie), "WAR"),
         Place("ДОТ Молчанова", "Железобетонный пулемётный ДОТ Пинского укрепрайона («Линия Сталина»), построенный в 1938–1939 годах. Это один из немногих материально сохранившихся объектов укрепрайона. Представляет собой типичное фортификационное сооружение предвоенного периода.", 52.120189, 26.124274, R.raw.molchanov, listOf(R.drawable.molchanov,R.drawable.molchanov1), "WAR")
     )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().load(this, getSharedPreferences("osm_prefs", MODE_PRIVATE))
@@ -111,27 +112,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun displayPlaceInfo(place: Place) {
-        findViewById<TextView>(R.id.infoTitle).text = place.name
-        findViewById<TextView>(R.id.infoDescription).text = place.description
-
-        infoSlider.adapter = SliderAdapter(place.images)
-        infoSlider.setCurrentItem(0, false) // Сброс на первую картинку без анимации
-
-        infoCard.visibility = View.VISIBLE
-
-        sliderHandler.removeCallbacks(sliderRunnable)
-        if (place.images.size > 1) {
-            sliderHandler.postDelayed(sliderRunnable, 3000)
-        }
-
-        if (isAudioGlobalEnabled) {
-            mediaPlayer?.release()
-            mediaPlayer = MediaPlayer.create(this, place.audioRes)
-            mediaPlayer?.start()
-        }
-    }
-
     private fun setupMap() {
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)
@@ -140,19 +120,71 @@ class MainActivity : AppCompatActivity() {
 
         myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), map)
         myLocationOverlay.enableMyLocation()
+
         myLocationOverlay.runOnFirstFix {
             myLocationOverlay.myLocationProvider.startLocationProvider { location, _ ->
-                checkProximity(GeoPoint(location.latitude, location.longitude))
+                val userPoint = GeoPoint(location.latitude, location.longitude)
+
+                checkProximity(userPoint)
+
+                runOnUiThread {
+                    updateDynamicDashLine(userPoint)
+                }
             }
         }
         map.overlays.add(myLocationOverlay)
     }
 
+    private fun updateDynamicDashLine(userLoc: GeoPoint) {
+        val filtered = places.filter { it.category == currentCategory }
+        if (filtered.isEmpty()) return
+
+        val firstPlacePoint = GeoPoint(filtered[0].lat, filtered[0].lon)
+        val distance = userLoc.distanceToAsDouble(firstPlacePoint)
+
+        if (distance < 15.0) {
+            roadOverlayToFirst?.let { map.overlays.remove(it) }
+            roadOverlayToFirst = null
+            map.invalidate()
+            return
+        }
+
+        if (lastUpdateLocation != null && userLoc.distanceToAsDouble(lastUpdateLocation) < 20.0) {
+            return
+        }
+
+        lastUpdateLocation = userLoc
+
+        thread {
+            try {
+                val roadManager = OSRMRoadManager(this, packageName)
+                roadManager.setMean(OSRMRoadManager.MEAN_BY_FOOT)
+
+                val road = roadManager.getRoad(arrayListOf(userLoc, firstPlacePoint))
+                val newDashOverlay = RoadManager.buildRoadOverlay(road)
+
+                newDashOverlay.outlinePaint.color = Color.DKGRAY
+                newDashOverlay.outlinePaint.strokeWidth = 10f
+                newDashOverlay.outlinePaint.pathEffect = DashPathEffect(floatArrayOf(20f, 20f), 0f)
+
+                runOnUiThread {
+                    roadOverlayToFirst?.let { map.overlays.remove(it) }
+                    roadOverlayToFirst = newDashOverlay
+                    map.overlays.add(newDashOverlay)
+                    map.invalidate()
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
     private fun showRoute(category: String) {
+        this.currentCategory = category
         val filtered = places.filter { it.category == category }
         if (filtered.isEmpty()) return
 
         map.overlays.removeAll { it is Marker || (it is Polyline && it != myLocationOverlay) }
+        roadOverlayToFirst = null
+        lastUpdateLocation = null
 
         filtered.forEach { p ->
             val marker = Marker(map)
@@ -167,18 +199,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 val roadManager = OSRMRoadManager(this, packageName)
                 roadManager.setMean(OSRMRoadManager.MEAN_BY_FOOT)
-
-                val userLoc = myLocationOverlay.myLocation
                 val destPoints = ArrayList(filtered.map { GeoPoint(it.lat, it.lon) })
-
-                if (userLoc != null && destPoints.isNotEmpty()) {
-                    val roadToFirst = roadManager.getRoad(arrayListOf(userLoc, destPoints[0]))
-                    val dashOverlay = RoadManager.buildRoadOverlay(roadToFirst)
-                    dashOverlay.outlinePaint.color = Color.GRAY
-                    dashOverlay.outlinePaint.strokeWidth = 10f
-                    dashOverlay.outlinePaint.pathEffect = DashPathEffect(floatArrayOf(20f, 20f), 0f)
-                    runOnUiThread { map.overlays.add(dashOverlay) }
-                }
 
                 if (destPoints.size > 1) {
                     val mainRoad = roadManager.getRoad(destPoints)
@@ -187,6 +208,11 @@ class MainActivity : AppCompatActivity() {
                     mainOverlay.outlinePaint.strokeWidth = 14f
                     runOnUiThread { map.overlays.add(mainOverlay) }
                 }
+
+                myLocationOverlay.myLocation?.let {
+                    runOnUiThread { updateDynamicDashLine(it) }
+                }
+
                 runOnUiThread { map.invalidate() }
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -195,12 +221,31 @@ class MainActivity : AppCompatActivity() {
     private fun checkProximity(currentPos: GeoPoint) {
         places.forEach { p ->
             val dist = currentPos.distanceToAsDouble(GeoPoint(p.lat, p.lon))
-            if (dist < 50.0 && !visitedPlaces.contains(p.name)) {
+            if (dist < 40.0 && !visitedPlaces.contains(p.name)) {
                 runOnUiThread {
                     visitedPlaces.add(p.name)
                     displayPlaceInfo(p)
                 }
             }
+        }
+    }
+
+    private fun displayPlaceInfo(place: Place) {
+        findViewById<TextView>(R.id.infoTitle).text = place.name
+        findViewById<TextView>(R.id.infoDescription).text = place.description
+        infoSlider.adapter = SliderAdapter(place.images)
+        infoSlider.setCurrentItem(0, false)
+        infoCard.visibility = View.VISIBLE
+
+        sliderHandler.removeCallbacks(sliderRunnable)
+        if (place.images.size > 1) {
+            sliderHandler.postDelayed(sliderRunnable, 3000)
+        }
+
+        if (isAudioGlobalEnabled) {
+            mediaPlayer?.release()
+            mediaPlayer = MediaPlayer.create(this, place.audioRes)
+            mediaPlayer?.start()
         }
     }
 
@@ -215,8 +260,7 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.btnExitToStart).setOnClickListener { finish() }
         findViewById<Button>(R.id.menuVirtual).setOnClickListener {
-            val intent = Intent(this, PanoramaActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, PanoramaActivity::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
         }
         val btnAudio = findViewById<Button>(R.id.btnToggleAudio)
