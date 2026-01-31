@@ -222,14 +222,14 @@ class MainActivity : AppCompatActivity() {
         places.forEach { p ->
             val dist = currentPos.distanceToAsDouble(GeoPoint(p.lat, p.lon))
             if (dist < 40.0 && !visitedPlaces.contains(p.name)) {
+                visitedPlaces.add(p.name)
+                playAudioForPlace(p)
                 runOnUiThread {
-                    visitedPlaces.add(p.name)
                     displayPlaceInfo(p)
                 }
             }
         }
     }
-
     private fun displayPlaceInfo(place: Place) {
         findViewById<TextView>(R.id.infoTitle).text = place.name
         findViewById<TextView>(R.id.infoDescription).text = place.description
@@ -294,3 +294,5 @@ class MainActivity : AppCompatActivity() {
         sliderHandler.removeCallbacks(sliderRunnable)
     }
 }
+
+private fun MainActivity.playAudioForPlace(p: MainActivity.Place) {}
